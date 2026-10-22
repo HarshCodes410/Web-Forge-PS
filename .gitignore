@@ -23,3 +23,5 @@ backend/venv/
 *.pth
 .env
 .worktrees/
+backend/cloudflared
+cloudflared

@@ -1,6 +1,6 @@
-export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').trim().replace(/\/+$/, '')
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').trim().replace(/\/+$/, '') || '/backend'
 
-export const isApiConfigured = API_URL.length > 0
+export const isApiConfigured = true
 
 export const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 export const MAX_FILE_BYTES = 10 * 1024 * 1024
