@@ -3,18 +3,19 @@ import { cn } from '@/lib/utils'
 import { SectionHeader } from './section-header'
 
 const ROWS = [
-  ['Architecture', 'Mask R-CNN (two-stage instance segmentation)'],
-  ['Backbone', 'ResNet-50 with Feature Pyramid Network'],
-  ['Heads', 'Box classification, box regression, per-instance mask'],
-  ['Target class', 'Leaf (single foreground class)'],
+  ['Architecture', 'ResNet-50 (50-layer Deep Residual Network)'],
+  ['Weights', 'resnet50_phenobench.pth (92 MB PyTorch state dict)'],
+  ['Classification Head', 'Linear(2048 → 256) → ReLU → Dropout(0.4) → Linear(256 → 2)'],
+  ['Target Classes', 'Crop (Class 0), Weed (Class 1)'],
+  ['Pre-trained Base', 'ImageNet (ResNet50_Weights.DEFAULT)'],
   ['Serving', 'FastAPI · POST /predict (multipart “file”)'],
-  ['Deployment', 'Frontend on Vercel · model on a dedicated backend'],
+  ['Deployment', 'Next.js on Vercel · FastAPI backend (Local / Cloud)'],
 ]
 
 const USES = [
-  { title: 'Leaf counting', body: 'Automatic per-plant leaf counts for growth tracking.' },
-  { title: 'Phenotyping', body: 'Per-leaf masks enable area, shape, and colour analysis.' },
-  { title: 'Health screening', body: 'Isolated leaves can be passed to downstream disease models.' },
+  { title: 'Precision Herbicide Spraying', body: 'Target specific weed patches rather than broadcast spraying, saving costs and chemicals.' },
+  { title: 'Automated Crop Phenotyping', body: 'Benchmark crop growth and canopy development across field rows.' },
+  { title: 'Field Rover Robotics', body: 'Low-latency classification optimized for real-time edge agricultural vehicles.' },
 ]
 
 export function ModelDetails() {
@@ -23,8 +24,8 @@ export function ModelDetails() {
       <SectionHeader
         id="model-title"
         eyebrow="03 / Model Details"
-        title="Mask R-CNN for leaves"
-        description="A region-based convolutional network that predicts a bounding box, class, and pixel mask for every leaf it finds."
+        title="ResNet-50 for PhenoBench"
+        description="A residual neural network fine-tuned on the PhenoBench dataset to distinguish agricultural crops from invasive weeds."
       />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <dl className={cn(panelStyles, 'divide-y divide-border lg:col-span-3')}>

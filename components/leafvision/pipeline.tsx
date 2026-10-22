@@ -5,10 +5,10 @@ import { SectionHeader } from './section-header'
 
 const STEPS = [
   { code: 'IN', title: 'Image Upload', body: 'Plant image is validated in the browser and sent as multipart form data.' },
-  { code: 'PRE', title: 'Preprocessing', body: 'The backend resizes and normalises the image to the model input format.' },
-  { code: 'RPN', title: 'Region Proposals', body: 'The FPN backbone and RPN propose candidate regions likely to contain leaves.' },
-  { code: 'MASK', title: 'Mask Prediction', body: 'Each region is classified, refined, and given a pixel-level leaf mask.' },
-  { code: 'OUT', title: 'Overlay & Count', body: 'Masks are rendered as a colour overlay and returned with instance metadata.' },
+  { code: 'PRE', title: 'Preprocessing', body: 'The backend resizes to 224×224 and applies ImageNet standard RGB normalization.' },
+  { code: 'RES', title: 'ResNet-50 Backbone', body: 'Deep convolutional residual bottleneck blocks extract high-level feature representations.' },
+  { code: 'HEAD', title: 'Dense Projection', body: 'A 256-unit layer with 40% dropout mitigates overfitting on agricultural foliage.' },
+  { code: 'OUT', title: 'Softmax & Probabilities', body: 'Two-class output layer calculates calibrated confidence for Crop vs Weed.' },
 ]
 
 export function Pipeline() {
@@ -17,8 +17,8 @@ export function Pipeline() {
       <SectionHeader
         id="pipeline-title"
         eyebrow="02 / Pipeline"
-        title="From pixels to leaf instances"
-        description="What happens between pressing Segment Leaves and seeing the output."
+        title="From pixels to crop identification"
+        description="What happens between pressing Classify Plant and seeing the result."
       />
       <ol className="grid grid-cols-1 gap-3 md:grid-cols-5">
         {STEPS.map((step, i) => (

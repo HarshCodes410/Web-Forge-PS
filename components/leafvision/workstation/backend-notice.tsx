@@ -36,7 +36,7 @@ export function BackendNotice({
           <p className="font-medium text-foreground">Backend health check failed</p>
           <p className="text-muted-foreground">
             <span className="break-all font-mono text-xs text-foreground">{API_URL}/health</span> did not respond. The
-            server may still be starting or may not expose a health route &mdash; you can still try segmenting.
+            server may still be starting or may not expose a health route &mdash; you can still try classifying.
           </p>
         </div>
         <button

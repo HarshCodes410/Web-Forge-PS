@@ -130,9 +130,9 @@ export function Workstation({
     <section id="workstation" aria-labelledby="workstation-title" className="flex scroll-mt-24 flex-col gap-6">
       <SectionHeader
         id="workstation-title"
-        eyebrow="01 / Segmentation Lab"
-        title="Upload & Segment"
-        description="Send a plant image to the deployed Mask R-CNN model. The original image and the model's real segmentation output are shown side by side."
+        eyebrow="01 / Plant Phenotyping Lab"
+        title="Upload & Analyze"
+        description="Segment individual leaves with distinct color masks, count leaves, calculate surface area, and screen for tissue damage."
       />
 
       <BackendNotice status={status} onRecheck={onRecheck} isRechecking={isRechecking} />
@@ -180,7 +180,7 @@ export function Workstation({
           )}
         </PanelFrame>
 
-        <PanelFrame title="Segmentation Output" tag={outputTag} tagTone={outputTone}>
+        <PanelFrame title="Phenotyping Visuals" tag={outputTag} tagTone={outputTone}>
           <OutputView state={output} previewUrl={selected?.previewUrl ?? null} />
         </PanelFrame>
       </div>
@@ -199,7 +199,7 @@ export function Workstation({
           className={buttonStyles.primary}
         >
           {processing ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <ScanLine className="size-4" aria-hidden="true" />}
-          {processing ? 'Segmenting…' : output.kind === 'error' ? 'Retry Segmentation' : 'Segment Leaves'}
+          {processing ? 'Analyzing…' : output.kind === 'error' ? 'Retry Analysis' : 'Analyze Plant'}
         </button>
         {selected && (
           <label className={cn(buttonStyles.ghost, 'cursor-pointer', processing && 'pointer-events-none opacity-40')}>

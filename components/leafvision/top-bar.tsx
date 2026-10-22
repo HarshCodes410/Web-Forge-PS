@@ -39,13 +39,13 @@ export function TopBar({ status, activeId }: { status: BackendStatus; activeId: 
           </div>
           <div className="hidden border-l border-border pl-6 font-mono text-xs leading-relaxed text-muted-foreground xl:block">
             <p>
-              Model: <span className="text-foreground">Mask R-CNN</span>
+              Model: <span className="text-foreground">ResNet-50</span>
             </p>
             <p>
-              Backbone: <span className="text-foreground">ResNet-50 FPN</span>
+              Dataset: <span className="text-foreground">PhenoBench</span>
             </p>
             <p>
-              Endpoint: <span className="text-foreground">POST /predict</span>
+              Classes: <span className="text-foreground">Crop // Weed</span>
             </p>
           </div>
           <div className="md:hidden">

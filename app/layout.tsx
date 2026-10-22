@@ -7,9 +7,9 @@ const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
 
 export const metadata: Metadata = {
-  title: 'LeafVision — AI-Powered Leaf Instance Segmentation',
+  title: 'LeafVision — PhenoBench Crop & Weed Classifier',
   description:
-    'Upload a plant image and segment every individual leaf with a Mask R-CNN instance segmentation model.',
+    'Upload a plant image and classify Crop vs Weed with a fine-tuned ResNet-50 PhenoBench model.',
   generator: 'v0.app',
   icons: {
     icon: [

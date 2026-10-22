@@ -7,12 +7,15 @@ const REQUEST = `curl -X POST "$NEXT_PUBLIC_API_URL/predict" \\
   -F "file=@plant.jpg"`
 
 const RESPONSE = `{
-  "result_image": "<base64 PNG or URL>",
-  "leaf_count": 12,
-  "inference_ms": 840,
-  "instances": [
-    { "id": 1, "score": 0.98, "label": "leaf" }
-  ]
+  "status": "success",
+  "class_id": 0,
+  "prediction": "Crop",
+  "confidence": 0.9842,
+  "probabilities": {
+    "Crop": 0.9842,
+    "Weed": 0.0158
+  },
+  "inference_ms": 142.5
 }`
 
 export function Integration() {

@@ -24,11 +24,11 @@ export function Hero() {
           id="hero-title"
           className="max-w-3xl text-balance text-4xl font-bold uppercase leading-[1.02] tracking-tight text-foreground sm:text-5xl lg:text-6xl"
         >
-          Every leaf, <span className="text-primary">counted</span> and outlined.
+          Count, color, measure, &amp; <span className="text-primary">diagnose</span> every leaf.
         </h1>
         <p className="max-w-2xl border-l-2 border-primary pl-4 text-pretty text-lg leading-relaxed text-foreground/80">
-          LeafVision uses a Mask R-CNN instance segmentation model to detect and mask each individual leaf in a plant
-          image &mdash; enabling automated leaf counting and plant phenotyping.
+          LeafVision uses PhenoBench agricultural deep learning and computer vision to count leaves, color individual leaf
+          instances, quantify leaf surface area, and screen for plant damage &amp; lesions in real time.
         </p>
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <a href="#workstation" className={buttonStyles.primary}>
