@@ -1,0 +1,49 @@
+import { panelStyles } from '@/lib/styles'
+import { cn } from '@/lib/utils'
+import { SectionHeader } from './section-header'
+
+const ROWS = [
+  ['Architecture', 'Mask R-CNN (two-stage instance segmentation)'],
+  ['Backbone', 'ResNet-50 with Feature Pyramid Network'],
+  ['Heads', 'Box classification, box regression, per-instance mask'],
+  ['Target class', 'Leaf (single foreground class)'],
+  ['Serving', 'FastAPI · POST /predict (multipart “file”)'],
+  ['Deployment', 'Frontend on Vercel · model on a dedicated backend'],
+]
+
+const USES = [
+  { title: 'Leaf counting', body: 'Automatic per-plant leaf counts for growth tracking.' },
+  { title: 'Phenotyping', body: 'Per-leaf masks enable area, shape, and colour analysis.' },
+  { title: 'Health screening', body: 'Isolated leaves can be passed to downstream disease models.' },
+]
+
+export function ModelDetails() {
+  return (
+    <section id="model" aria-labelledby="model-title" className="flex scroll-mt-24 flex-col gap-6">
+      <SectionHeader
+        id="model-title"
+        eyebrow="03 / Model Details"
+        title="Mask R-CNN for leaves"
+        description="A region-based convolutional network that predicts a bounding box, class, and pixel mask for every leaf it finds."
+      />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        <dl className={cn(panelStyles, 'divide-y divide-border lg:col-span-3')}>
+          {ROWS.map(([term, detail]) => (
+            <div key={term} className="grid grid-cols-1 gap-1 px-5 py-4 sm:grid-cols-3 sm:gap-4">
+              <dt className="label-mono pt-0.5">{term}</dt>
+              <dd className="text-sm text-foreground sm:col-span-2">{detail}</dd>
+            </div>
+          ))}
+        </dl>
+        <ul className="flex flex-col gap-3 lg:col-span-2">
+          {USES.map((use) => (
+            <li key={use.title} className={cn(panelStyles, 'flex flex-col gap-1.5 border-l-2 border-l-primary p-5')}>
+              <h3 className="font-semibold text-foreground">{use.title}</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">{use.body}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )
+}
