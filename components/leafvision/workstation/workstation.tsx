@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Loader2, RotateCcw, ScanLine, Trash2 } from 'lucide-react'
-import { ApiError, formatBytes, isApiConfigured, predictLeaves, validateFile } from '@/lib/api'
+import { ApiError, formatBytes, isApiConfigured, predictLeaves, validateFile, type PredictionResult } from '@/lib/api'
 import { buttonStyles } from '@/lib/styles'
 import { cn } from '@/lib/utils'
 import type { BackendStatus } from '@/hooks/use-backend-health'
+import type { ImageHistoryItem } from '@/lib/history'
 import { SectionHeader } from '../section-header'
 import { BackendNotice } from './backend-notice'
 import { Dropzone } from './dropzone'
@@ -19,16 +20,27 @@ export function Workstation({
   status,
   onRecheck,
   isRechecking,
+  onRegisterImage,
+  onAttachResult,
+  selectedHistoryItem,
+  getFileForItem,
+  onLoadSample,
 }: {
   status: BackendStatus
   onRecheck: () => void
   isRechecking: boolean
+  onRegisterImage?: (file: File) => Promise<string>
+  onAttachResult?: (id: string, result: PredictionResult) => void
+  selectedHistoryItem?: ImageHistoryItem | null
+  getFileForItem?: (item: ImageHistoryItem) => Promise<File>
+  onLoadSample?: () => void
 }) {
   const [selected, setSelected] = useState<Selected | null>(null)
   const [fileError, setFileError] = useState<string | null>(null)
   const [output, setOutput] = useState<OutputState>({ kind: 'empty' })
   const [downloading, setDownloading] = useState(false)
   const requestId = useRef(0)
+  const currentHistoryIdRef = useRef<string | null>(null)
   const urlsRef = useRef<{ preview: string | null; result: string | null }>({ preview: null, result: null })
 
   useEffect(() => {
@@ -46,7 +58,46 @@ export function Workstation({
     }
   }
 
-  function handleFile(file: File) {
+  // Load from selected history item
+  useEffect(() => {
+    if (!selectedHistoryItem) return
+    let cancelled = false
+
+    async function loadItem() {
+      if (!selectedHistoryItem) return
+      try {
+        const file = getFileForItem ? await getFileForItem(selectedHistoryItem) : null
+        if (cancelled || !file) return
+
+        setFileError(null)
+        if (urlsRef.current.preview) URL.revokeObjectURL(urlsRef.current.preview)
+        releaseResult()
+
+        const previewUrl = selectedHistoryItem.thumbnailUrl?.startsWith('data:')
+          ? selectedHistoryItem.thumbnailUrl
+          : URL.createObjectURL(file)
+        urlsRef.current.preview = previewUrl
+        requestId.current += 1
+        currentHistoryIdRef.current = selectedHistoryItem.id
+        setSelected({ file, previewUrl })
+
+        if (selectedHistoryItem.result) {
+          setOutput({ kind: 'success', result: selectedHistoryItem.result })
+        } else {
+          setOutput({ kind: 'empty' })
+        }
+      } catch (e) {
+        console.error('Failed to load history item into workstation', e)
+      }
+    }
+
+    loadItem()
+    return () => {
+      cancelled = true
+    }
+  }, [selectedHistoryItem, getFileForItem])
+
+  async function handleFile(file: File) {
     const error = validateFile(file)
     if (error) {
       setFileError(error)
@@ -60,6 +111,16 @@ export function Workstation({
     requestId.current += 1
     setSelected({ file, previewUrl })
     setOutput({ kind: 'empty' })
+
+    // Register with history manager
+    if (onRegisterImage) {
+      try {
+        const id = await onRegisterImage(file)
+        currentHistoryIdRef.current = id
+      } catch (e) {
+        console.warn('Failed to register image in history', e)
+      }
+    }
   }
 
   function clearAll() {
@@ -67,6 +128,7 @@ export function Workstation({
     urlsRef.current.preview = null
     releaseResult()
     requestId.current += 1
+    currentHistoryIdRef.current = null
     setSelected(null)
     setFileError(null)
     setOutput({ kind: 'empty' })
@@ -85,6 +147,12 @@ export function Workstation({
       }
       if (result.isObjectUrl) urlsRef.current.result = result.imageUrl
       setOutput({ kind: 'success', result })
+
+      // Persist results to history item
+      if (currentHistoryIdRef.current && onAttachResult) {
+        onAttachResult(currentHistoryIdRef.current, result)
+      }
+
       onRecheck()
     } catch (err) {
       if (id !== requestId.current) return
@@ -172,11 +240,11 @@ export function Workstation({
         >
           {selected ? (
             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md border border-border bg-black">
-              {/* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */}
+              {/* eslint-disable-next-line @next/next/no-img-element -- local preview */}
               <img src={selected.previewUrl} alt={`Uploaded plant image: ${selected.file.name}`} className="size-full object-contain" />
             </div>
           ) : (
-            <Dropzone onFile={handleFile} />
+            <Dropzone onFile={handleFile} onSample={onLoadSample} />
           )}
         </PanelFrame>
 

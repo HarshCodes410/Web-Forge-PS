@@ -5,7 +5,15 @@ import { ImageUp } from 'lucide-react'
 import { ACCEPTED_TYPES } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
-export function Dropzone({ onFile, disabled }: { onFile: (file: File) => void; disabled?: boolean }) {
+export function Dropzone({
+  onFile,
+  onSample,
+  disabled,
+}: {
+  onFile: (file: File) => void
+  onSample?: () => void
+  disabled?: boolean
+}) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
 
@@ -34,14 +42,26 @@ export function Dropzone({ onFile, disabled }: { onFile: (file: File) => void; d
         <p className="font-medium text-foreground">Drag & drop a plant image</p>
         <p className="text-sm text-muted-foreground">JPG, PNG, or WebP &middot; up to 10 MB</p>
       </div>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => inputRef.current?.click()}
-        className="rounded-md border border-border bg-card px-4 py-2 font-mono text-xs uppercase tracking-[0.14em] text-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        Browse Files
-      </button>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => inputRef.current?.click()}
+          className="rounded-md border border-border bg-card px-4 py-2 font-mono text-xs uppercase tracking-[0.14em] text-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Browse Files
+        </button>
+        {onSample && (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onSample}
+            className="rounded-md border border-primary/40 bg-primary/10 px-3.5 py-2 font-mono text-xs uppercase tracking-[0.14em] text-primary hover:bg-primary/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Try Sample
+          </button>
+        )}
+      </div>
       <input
         ref={inputRef}
         type="file"

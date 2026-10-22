@@ -3,10 +3,30 @@
 import { useState } from 'react'
 import { Menu, X } from 'lucide-react'
 import type { BackendStatus } from '@/hooks/use-backend-health'
+import type { ImageHistoryItem } from '@/lib/history'
 import { SidebarNav, SystemStatus } from './sidebar'
+import { SidebarHistory } from './sidebar-history'
 import { StatusIndicator } from './status-indicator'
 
-export function TopBar({ status, activeId }: { status: BackendStatus; activeId: string }) {
+export function TopBar({
+  status,
+  activeId,
+  history = [],
+  activeHistoryId = null,
+  onSelectHistory = () => {},
+  onRemoveHistory = () => {},
+  onClearHistory = () => {},
+  onLoadSample = () => {},
+}: {
+  status: BackendStatus
+  activeId: string
+  history?: ImageHistoryItem[]
+  activeHistoryId?: string | null
+  onSelectHistory?: (item: ImageHistoryItem) => void
+  onRemoveHistory?: (id: string, e: React.MouseEvent) => void
+  onClearHistory?: () => void
+  onLoadSample?: () => void
+}) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -55,9 +75,25 @@ export function TopBar({ status, activeId }: { status: BackendStatus; activeId: 
       </div>
 
       {open && (
-        <div id="mobile-nav" className="flex flex-col gap-6 border-t border-border bg-panel px-4 py-5 lg:hidden">
+        <div id="mobile-nav" className="flex flex-col gap-6 border-t border-border bg-panel px-4 py-5 lg:hidden max-h-[85vh] overflow-y-auto">
           <SidebarNav activeId={activeId} onNavigate={() => setOpen(false)} />
-          <div className="border-t border-border pt-5">
+          <div className="border-t border-border pt-4">
+            <SidebarHistory
+              history={history}
+              activeId={activeHistoryId}
+              onSelect={(item) => {
+                onSelectHistory(item)
+                setOpen(false)
+              }}
+              onRemove={onRemoveHistory}
+              onClear={onClearHistory}
+              onLoadSample={() => {
+                onLoadSample()
+                setOpen(false)
+              }}
+            />
+          </div>
+          <div className="border-t border-border pt-4">
             <SystemStatus status={status} />
           </div>
         </div>
