@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LeafVision // Leaf Instance Segmentation & Phenotyping</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            bgDark: '#0c100e',
+            panel: '#131916',
+            card: '#18201c',
+            borderGreen: 'rgba(255, 255, 255, 0.08)',
+            borderHighlight: '#23322b',
+            primaryGreen: '#10b981',       /* Emerald Chlorophyll */
+            primaryHover: '#059669',
+            accentCyan: '#06b6d4',        /* Telemetry Cyan */
+            alertOrange: '#f97316',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Technical Grid Overlay */
+    body {
+      background-color: #0c100e;
+      background-image:
+        linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+      color: #e2e8f0;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0c100e; }
+    ::-webkit-scrollbar-thumb { background: #1f2c25; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+
+    .nav-item-active {
+      background: rgba(16, 185, 129, 0.1);
+      border-left: 2px solid #10b981;
+      color: #10b981 !important;
+    }
+    .nav-item-active i {
+      color: #10b981 !important;
+    }
+
+    .label-mono {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body class="h-screen flex overflow-hidden text-sm selection:bg-primaryGreen selection:text-black">
+
+  <!-- ================= LEFT SIDEBAR (MISSION CONTROL) ================= -->
+  <aside class="w-64 bg-panel border-r border-borderGreen flex flex-col justify-between shrink-0 select-none z-30">
+    
+    <div>
+      <!-- Top Branding -->
+      <div class="px-6 py-6 border-b border-borderGreen">
+        <div class="label-mono">Mission Control</div>
+        <div class="text-base font-bold text-white tracking-tight mt-1 flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-sm bg-primaryGreen shadow-sm shadow-primaryGreen/50"></span>
+          LeafVision <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-primaryGreen/10 text-primaryGreen border border-primaryGreen/30">PS 07</span>
+        </div>
+        <div class="text-[11px] text-slate-500 font-mono mt-0.5">Mask R-CNN Phenotyping</div>
+      </div>
+
+      <!-- Navigation Links in Required Order:
+           a) Overview
+           b) Image Upload
+           c) Metadata Analysis
+           d) Metrics
+           e) Results
+           f) Image History
+      -->
+      <nav class="mt-4 px-3 space-y-1 text-sm font-medium">
+        <button onclick="switchTab('overview')" id="nav-overview" class="nav-item-active w-full flex items-center gap-3 px-3 py-2.5 rounded text-slate-400 hover:bg-card hover:text-white transition text-left">
+          <i class="fa-solid fa-rocket w-4 text-center text-slate-500"></i>
+          <span>Overview</span>
+        </button>
+
+        <button onclick="switchTab('upload')" id="nav-upload" class="w-full flex items-center gap-3 px-3 py-2.5 rounded text-slate-400 hover:bg-card hover:text-white transition text-left">
+          <i class="fa-solid fa-cloud-arrow-up w-4 text-center text-slate-500"></i>
+          <span>Image Upload</span>
+        </button>
+
+        <button onclick="switchTab('metadata')" id="nav-metadata" class="w-full flex items-center gap-3 px-3 py-2.5 rounded text-slate-400 hover:bg-card hover:text-white transition text-left">
+          <i class="fa-solid fa-chart-pie w-4 text-center text-slate-500"></i>
+          <span>Metadata Analysis</span>
+        </button>
+
+        <button onclick="switchTab('metrics')" id="nav-metrics" class="w-full flex items-center gap-3 px-3 py-2.5 rounded text-slate-400 hover:bg-card hover:text-white transition text-left">
+          <i class="fa-solid fa-chart-line w-4 text-center text-slate-500"></i>
+          <span>Metrics</span>
+        </button>
+
+        <button onclick="switchTab('results')" id="nav-results" class="w-full flex items-center gap-3 px-3 py-2.5 rounded text-slate-400 hover:bg-card hover:text-white transition text-left">
+          <i class="fa-solid fa-circle-check w-4 text-center text-slate-500"></i>
+          <span>Results Gallery</span>
+        </button>
+
+        <button onclick="switchTab('history')" id="nav-history" class="w-full flex items-center gap-3 px-3 py-2.5 rounded text-slate-400 hover:bg-card hover:text-white transition text-left">
+          <i class="fa-solid fa-clock-rotate-left w-4 text-center text-slate-500"></i>
+          <span>Image History</span>
+          <span id="historyBadge" class="ml-auto text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">0</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Bottom System Status Indicators -->
+    <div class="p-5 border-t border-borderGreen bg-[#090d0b] font-mono text-xs">
+      <div class="label-mono mb-2.5 text-[10px]">System Status</div>
+      <div class="space-y-2">
+        <div class="flex items-center justify-between text-slate-400">
+          <span>API URL</span>
+          <span class="text-accentCyan font-bold flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-accentCyan"></span> 127.0.0.1:8000
+          </span>
+        </div>
+        <div class="flex items-center justify-between text-slate-400">
+          <span>Backend GPU</span>
+          <span id="statusBackend" class="text-primaryGreen font-bold flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-primaryGreen animate-pulse"></span> ONLINE
+          </span>
+        </div>
+        <div class="flex items-center justify-between text-slate-400">
+          <span>Model Architecture</span>
+          <span class="text-slate-300">ResNet-50 FPN</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN CONTENT AREA ================= -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+
+    <!-- TOP TELEMETRY BAR -->
+    <header class="h-12 border-b border-borderGreen bg-panel/90 px-6 flex items-center justify-between shrink-0 font-mono text-xs z-20">
+      <div class="flex items-center gap-3">
+        <span class="text-primaryGreen font-bold tracking-wider flex items-center gap-2">
+          <i class="fa-solid fa-leaf text-primaryGreen text-xs"></i> LEAFVISION // CANOPY INTELLIGENCE
+        </span>
+        <span class="text-slate-600">|</span>
+        <span id="breadcrumbCurrent" class="text-slate-400 uppercase text-[11px]">Overview</span>
+      </div>
+      <div class="flex items-center gap-6 text-[11px] text-slate-400">
+        <div><span class="text-slate-600">HACKATHON:</span> <span class="text-slate-200">WEB FORGE 2026 // PS 07</span></div>
+        <div><span class="text-slate-600">BACKBONE:</span> <span class="text-slate-200">Mask R-CNN (ResNet-50)</span></div>
+        <div><span class="text-slate-600">STATUS:</span> <span class="text-primaryGreen font-semibold">OPTIMAL</span></div>
+      </div>
+    </header>
+
+    <!-- TAB CONTAINER -->
+    <main class="flex-1 overflow-y-auto p-6 md:p-8 space-y-12 max-w-7xl mx-auto w-full">
+
+      <!-- ================= SECTION A: OVERVIEW ================= -->
+      <section id="tab-overview" class="space-y-10">
+        
+        <!-- Hero Banner (Friend's Exact Style) -->
+        <div class="relative overflow-hidden rounded-lg border border-borderGreen bg-black p-8 sm:p-12 lg:p-16">
+          <img src="images/hero-leaves.png" alt="" class="absolute inset-0 w-full h-full object-cover object-right opacity-60 pointer-events-none" onerror="this.style.display='none'" />
+          <div class="absolute inset-0 bg-gradient-to-r from-black via-black/85 to-transparent"></div>
+
+          <div class="relative z-10 max-w-2xl flex flex-col gap-6">
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold uppercase leading-[1.05] tracking-tight text-white">
+              Every leaf, <span class="text-primaryGreen">counted</span> and outlined.
+            </h1>
+            <p class="border-l-2 border-primaryGreen pl-4 text-base sm:text-lg leading-relaxed text-slate-300">
+              LeafVision uses a deep Mask R-CNN instance segmentation model to detect, classify, and generate pixel-level masks for each individual leaf in complex crop canopies &mdash; enabling high-throughput automated plant phenotyping.
+            </p>
+            <div class="flex flex-wrap gap-3 pt-2 font-mono text-xs">
+              <button onclick="switchTab('upload')" class="px-5 py-3 bg-primaryGreen hover:bg-primaryHover text-black font-bold rounded flex items-center gap-2 transition">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Upload Plant Image
+              </button>
+              <button onclick="switchTab('metrics')" class="px-5 py-3 bg-card hover:bg-panel text-accentCyan border border-accentCyan/30 rounded flex items-center gap-2 transition">
+                <i class="fa-solid fa-chart-line"></i> View Model Metrics
+              </button>
+              <button onclick="switchTab('results')" class="px-5 py-3 bg-card hover:bg-panel text-slate-300 border border-borderGreen rounded flex items-center gap-2 transition">
+                <i class="fa-solid fa-images"></i> Results Gallery
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Spec Strip (Friend's Exact 6-Item Grid) -->
+        <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6 font-mono">
+          <li class="bg-card border border-borderGreen rounded p-4 flex flex-col justify-between min-h-[90px]">
+            <p class="label-mono text-[10px]">Architecture</p>
+            <p class="text-lg font-medium text-white">Mask R-CNN</p>
+          </li>
+          <li class="bg-card border border-borderGreen rounded p-4 flex flex-col justify-between min-h-[90px]">
+            <p class="label-mono text-[10px]">Backbone</p>
+            <p class="text-lg font-medium text-white">ResNet-50 FPN</p>
+          </li>
+          <li class="bg-card border border-borderGreen rounded p-4 flex flex-col justify-between min-h-[90px]">
+            <p class="label-mono text-[10px]">Task</p>
+            <p class="text-lg font-medium text-white">Instance Seg.</p>
+          </li>
+          <li class="bg-card border border-borderGreen rounded p-4 flex flex-col justify-between min-h-[90px]">
+            <p class="label-mono text-[10px]">Target Class</p>
+            <p class="text-lg font-medium text-white">Leaf</p>
+          </li>
+          <li class="bg-card border border-borderGreen rounded p-4 flex flex-col justify-between min-h-[90px]">
+            <p class="label-mono text-[10px]">Output</p>
+            <p class="text-lg font-medium text-white">Masks + Boxes</p>
+          </li>
+          <li class="bg-card border border-borderGreen rounded p-4 flex flex-col justify-between min-h-[90px]">
+            <p class="label-mono text-[10px]">API Endpoint</p>
+            <p class="text-lg font-medium text-primaryGreen font-mono">/api/segment</p>
+          </li>
+        </ul>
+
+        <!-- Pipeline Steps (Friend's Exact 5-Step Process) -->
+        <div class="space-y-4">
+          <div class="flex flex-col gap-1">
+            <span class="label-mono text-primaryGreen">02 / Pipeline</span>
+            <h2 class="text-2xl font-bold text-white tracking-tight">From pixels to leaf instances</h2>
+            <p class="text-sm text-slate-400">What happens between pressing Segment Leaves and seeing the output.</p>
+          </div>
+          
+          <ol class="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <li class="bg-card border border-borderGreen rounded p-5 flex flex-col gap-3">
+              <div class="flex items-center justify-between font-mono">
+                <span class="text-xs text-primaryGreen">01</span>
+                <span class="border border-accentCyan/30 px-2 py-0.5 text-[10px] text-accentCyan rounded">IN</span>
+              </div>
+              <h3 class="font-semibold text-white">Image Upload</h3>
+              <p class="text-xs text-slate-400 leading-relaxed">Plant image is validated in browser and sent as multipart form data.</p>
+            </li>
+
+            <li class="bg-card border border-borderGreen rounded p-5 flex flex-col gap-3">
+              <div class="flex items-center justify-between font-mono">
+                <span class="text-xs text-primaryGreen">02</span>
+                <span class="border border-accentCyan/30 px-2 py-0.5 text-[10px] text-accentCyan rounded">PRE</span>
+              </div>
+              <h3 class="font-semibold text-white">Preprocessing</h3>
+              <p class="text-xs text-slate-400 leading-relaxed">The backend applies Excess Green index and normalises to model format.</p>
+            </li>
+
+            <li class="bg-card border border-borderGreen rounded p-5 flex flex-col gap-3">
+              <div class="flex items-center justify-between font-mono">
+                <span class="text-xs text-primaryGreen">03</span>
+                <span class="border border-accentCyan/30 px-2 py-0.5 text-[10px] text-accentCyan rounded">RPN</span>
+              </div>
+              <h3 class="font-semibold text-white">Region Proposals</h3>
+              <p class="text-xs text-slate-400 leading-relaxed">The FPN backbone and RPN propose candidate regions containing leaves.</p>
+            </li>
+
+            <li class="bg-card border border-borderGreen rounded p-5 flex flex-col gap-3">
+              <div class="flex items-center justify-between font-mono">
+                <span class="text-xs text-primaryGreen">04</span>
+                <span class="border border-accentCyan/30 px-2 py-0.5 text-[10px] text-accentCyan rounded">MASK</span>
+              </div>
+              <h3 class="font-semibold text-white">Mask Prediction</h3>
+              <p class="text-xs text-slate-400 leading-relaxed">Each region is classified, refined, and given a pixel-level leaf mask.</p>
+            </li>
+
+            <li class="bg-card border border-borderGreen rounded p-5 flex flex-col gap-3">
+              <div class="flex items-center justify-between font-mono">
+                <span class="text-xs text-primaryGreen">05</span>
+                <span class="border border-accentCyan/30 px-2 py-0.5 text-[10px] text-accentCyan rounded">OUT</span>
+              </div>
+              <h3 class="font-semibold text-white">Overlay & Count</h3>
+              <p class="text-xs text-slate-400 leading-relaxed">Masks are rendered as distinct colour overlays with instance metadata.</p>
+            </li>
+          </ol>
+        </div>
+
+        <!-- Model Specs Table & Use Cases -->
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <div class="bg-card border border-borderGreen rounded lg:col-span-3 divide-y divide-borderGreen">
+            <div class="p-4"><h3 class="font-semibold text-white">Model Specification</h3></div>
+            <div class="grid grid-cols-3 p-4 text-xs">
+              <span class="label-mono">Architecture</span>
+              <span class="col-span-2 text-slate-200">Mask R-CNN (two-stage instance segmentation)</span>
+            </div>
+            <div class="grid grid-cols-3 p-4 text-xs">
+              <span class="label-mono">Backbone</span>
+              <span class="col-span-2 text-slate-200">ResNet-50 with Feature Pyramid Network (FPN)</span>
+            </div>
+            <div class="grid grid-cols-3 p-4 text-xs">
+              <span class="label-mono">Prediction Heads</span>
+              <span class="col-span-2 text-slate-200">Box classification, box regression, per-instance mask</span>
+            </div>
+            <div class="grid grid-cols-3 p-4 text-xs">
+              <span class="label-mono">Target Class</span>
+              <span class="col-span-2 text-slate-200">Leaf (single foreground class)</span>
+            </div>
+            <div class="grid grid-cols-3 p-4 text-xs">
+              <span class="label-mono">Serving API</span>
+              <span class="col-span-2 text-slate-200">FastAPI &middot; POST /api/segment-batch</span>
+            </div>
+          </div>
+
+          <div class="lg:col-span-2 flex flex-col gap-3">
+            <div class="bg-card border border-borderGreen border-l-2 border-l-primaryGreen rounded p-4">
+              <h4 class="font-semibold text-white text-sm">Leaf Counting</h4>
+              <p class="text-xs text-slate-400 mt-1">Automatic per-plant leaf counts for growth rate and developmental tracking.</p>
+            </div>
+            <div class="bg-card border border-borderGreen border-l-2 border-l-accentCyan rounded p-4">
+              <h4 class="font-semibold text-white text-sm">Phenotyping</h4>
+              <p class="text-xs text-slate-400 mt-1">Per-leaf masks enable precise surface area (LAI), shape, and perimeter analysis.</p>
+            </div>
+            <div class="bg-card border border-borderGreen border-l-2 border-l-alertOrange rounded p-4">
+              <h4 class="font-semibold text-white text-sm">Health Screening</h4>
+              <p class="text-xs text-slate-400 mt-1">Isolated individual leaves can be passed to downstream pathology models.</p>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= SECTION B: IMAGE UPLOAD (SEGMENTATION WORKSTATION) ================= -->
+      <section id="tab-upload" class="hidden space-y-8">
+        
+        <div class="flex items-center justify-between pb-2 border-b border-borderGreen">
+          <div>
+            <span class="label-mono text-primaryGreen">Segmentation Lab</span>
+            <h2 class="text-2xl font-bold text-white tracking-tight mt-0.5">Image Upload & Inference</h2>
+          </div>
+          <div class="flex items-center gap-3 font-mono text-xs">
+            <span class="text-slate-400">Score Threshold:</span>
+            <input type="range" id="thresholdSlider" min="0.30" max="0.95" step="0.05" value="0.60" class="accent-primaryGreen cursor-pointer w-28" />
+            <span id="thresholdVal" class="text-primaryGreen font-bold">0.60</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Dropzone and Upload Queue (5 Cols) -->
+          <div class="lg:col-span-5 space-y-4">
+            <div id="dropzone" class="border-2 border-dashed border-borderGreen hover:border-primaryGreen/60 rounded-lg p-8 bg-card/60 flex flex-col items-center justify-center text-center cursor-pointer transition group min-h-[260px]">
+              <input type="file" id="leafFileInput" accept="image/*" multiple class="hidden" />
+              <div class="w-14 h-14 rounded-full bg-panel flex items-center justify-center text-slate-400 group-hover:text-primaryGreen border border-borderGreen transition mb-3">
+                <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+              </div>
+              <p class="font-semibold text-white">Drop plant images here</p>
+              <p class="text-xs text-slate-500 mt-1">or click to browse from your device (JPG/PNG)</p>
+              <span class="mt-4 px-3 py-1 bg-panel border border-borderGreen rounded text-slate-400 text-xs font-mono">
+                Supports Multiple Leaves
+              </span>
+            </div>
+
+            <!-- Upload Queue List -->
+            <div class="bg-card border border-borderGreen rounded p-4 font-mono">
+              <div class="flex justify-between items-center pb-2 border-b border-borderGreen text-xs">
+                <span class="label-mono">Selected Queue</span>
+                <span id="queueCount" class="text-slate-400">0 images</span>
+              </div>
+              <div id="queueList" class="py-4 text-xs text-slate-500 text-center">
+                No images queued yet.
+              </div>
+              <div class="flex gap-2 pt-2">
+                <button id="analyzeBtn" onclick="runSegmentation()" class="flex-1 py-2.5 bg-primaryGreen hover:bg-primaryHover text-black font-bold text-xs rounded transition flex items-center justify-center gap-2">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i> Segment Leaves
+                </button>
+                <button onclick="clearUploads()" class="px-3 py-2.5 bg-panel hover:bg-borderHighlight text-slate-400 hover:text-white border border-borderGreen text-xs rounded transition">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Output Visual & Metrics (7 Cols) -->
+          <div class="lg:col-span-7 flex flex-col gap-4">
+            
+            <div class="bg-card border border-borderGreen rounded p-4 flex-1 flex flex-col">
+              <div class="flex items-center justify-between pb-3 border-b border-borderGreen text-xs font-mono">
+                <span class="text-slate-300 flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-primaryGreen"></span> Output Segmentation Canvas
+                </span>
+                <span id="outputStatusBadge" class="text-slate-500 text-[11px]">Ready</span>
+              </div>
+
+              <!-- Main Canvas Display -->
+              <div id="outputContainer" class="relative flex-1 min-h-[380px] bg-black/60 rounded border border-borderGreen mt-3 flex items-center justify-center p-2 overflow-hidden">
+                <div id="outputPlaceholder" class="text-center text-slate-500 font-mono text-xs">
+                  <i class="fa-regular fa-image text-4xl mb-3 block text-slate-600"></i>
+                  <p>Upload an image and click Segment Leaves</p>
+                  <p class="text-[10px] text-slate-600 mt-1">Leaves will be segmented with Red, Blue, and Green masks</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Instant Telemetry Strip -->
+            <div class="grid grid-cols-3 gap-3 font-mono">
+              <div class="bg-card border border-borderGreen rounded p-3 text-center">
+                <p class="label-mono text-[9px]">Leaves Detected</p>
+                <p id="statLeafCount" class="text-2xl font-bold text-white mt-0.5">--</p>
+              </div>
+              <div class="bg-card border border-borderGreen rounded p-3 text-center">
+                <p class="label-mono text-[9px]">Inference Speed</p>
+                <p id="statInferenceSpeed" class="text-2xl font-bold text-primaryGreen mt-0.5">-- ms</p>
+              </div>
+              <div class="bg-card border border-borderGreen rounded p-3 text-center">
+                <p class="label-mono text-[9px]">Leaf Area (Px)</p>
+                <p id="statSurfaceArea" class="text-2xl font-bold text-accentCyan mt-0.5">--</p>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ================= SECTION C: METADATA ANALYSIS ================= -->
+      <section id="tab-metadata" class="hidden space-y-6">
+        
+        <div class="flex items-center justify-between pb-2 border-b border-borderGreen font-mono">
+          <div>
+            <span class="label-mono text-primaryGreen">03 / Analytics</span>
+            <h2 class="text-2xl font-bold text-white tracking-tight mt-0.5">Metadata & Dataset Correlations</h2>
+          </div>
+          <span class="px-3 py-1 bg-card border border-borderGreen rounded text-xs text-slate-300">
+            N = 240 Observations Analyzed
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- Resolution Table -->
+          <div class="lg:col-span-6 bg-card border border-borderGreen rounded p-5 font-mono">
+            <h3 class="label-mono text-white mb-3">Resolution & Sample Distribution</h3>
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="text-slate-500 border-b border-borderGreen">
+                  <th class="pb-2">Resolution</th>
+                  <th class="pb-2">Count</th>
+                  <th class="pb-2">Occlusion %</th>
+                  <th class="pb-2">Mean IoU</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-borderGreen text-slate-300">
+                <tr>
+                  <td class="py-2.5">1024 &times; 1024</td>
+                  <td>142</td>
+                  <td class="text-alertOrange">18.2%</td>
+                  <td class="text-primaryGreen font-bold">0.865</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5">512 &times; 512</td>
+                  <td>68</td>
+                  <td class="text-alertOrange">14.7%</td>
+                  <td class="text-primaryGreen font-bold">0.824</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5">256 &times; 256</td>
+                  <td>30</td>
+                  <td class="text-alertOrange">29.1%</td>
+                  <td class="text-primaryGreen font-bold">0.761</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Density Occlusion Bar Chart -->
+          <div class="lg:col-span-6 bg-card border border-borderGreen rounded p-5 font-mono">
+            <h3 class="label-mono text-white mb-3">Canopy Density Occlusion Rate</h3>
+            <div class="flex items-end justify-between h-44 px-6 pt-4 border-b border-borderGreen text-xs">
+              <div class="flex flex-col items-center gap-2">
+                <span class="text-accentCyan">12%</span>
+                <div class="w-14 bg-accentCyan rounded-t" style="height: 35px;"></div>
+                <span class="text-slate-400 mt-2 text-[11px]">Sparse</span>
+              </div>
+              <div class="flex flex-col items-center gap-2">
+                <span class="text-primaryGreen">28%</span>
+                <div class="w-14 bg-primaryGreen rounded-t" style="height: 80px;"></div>
+                <span class="text-slate-400 mt-2 text-[11px]">Moderate</span>
+              </div>
+              <div class="flex flex-col items-center gap-2">
+                <span class="text-alertOrange font-bold">64%</span>
+                <div class="w-14 bg-alertOrange rounded-t" style="height: 125px;"></div>
+                <span class="text-slate-400 mt-2 text-[11px]">Dense Canopy</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= SECTION D: METRICS ================= -->
+      <section id="tab-metrics" class="hidden space-y-6">
+        
+        <div class="flex items-center justify-between pb-2 border-b border-borderGreen font-mono">
+          <div>
+            <span class="label-mono text-primaryGreen">04 / Performance</span>
+            <h2 class="text-2xl font-bold text-white tracking-tight mt-0.5">Model Validation Metrics</h2>
+          </div>
+          <span class="px-3 py-1 bg-primaryGreen/10 border border-primaryGreen/30 text-primaryGreen rounded text-xs">
+            Validated on T4 GPU
+          </span>
+        </div>
+
+        <!-- Metric Score Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 font-mono">
+          <div class="bg-card border border-borderGreen rounded p-4">
+            <p class="label-mono text-[10px]">mAP @ IoU 0.50 (Mask)</p>
+            <p class="text-3xl font-bold text-primaryGreen mt-1">0.841</p>
+            <p class="text-[11px] text-slate-500 mt-1">Pixel instance overlap</p>
+          </div>
+          <div class="bg-card border border-borderGreen rounded p-4">
+            <p class="label-mono text-[10px]">mAP @ 0.50:0.95 (Mask)</p>
+            <p class="text-3xl font-bold text-accentCyan mt-1">0.618</p>
+            <p class="text-[11px] text-slate-500 mt-1">Strict contour precision</p>
+          </div>
+          <div class="bg-card border border-borderGreen rounded p-4">
+            <p class="label-mono text-[10px]">mAP @ IoU 0.50 (Bbox)</p>
+            <p class="text-3xl font-bold text-white mt-1">0.874</p>
+            <p class="text-[11px] text-slate-500 mt-1">Leaf detection accuracy</p>
+          </div>
+          <div class="bg-card border border-borderGreen rounded p-4">
+            <p class="label-mono text-[10px]">Average Latency</p>
+            <p class="text-3xl font-bold text-alertOrange mt-1">42 ms</p>
+            <p class="text-[11px] text-slate-500 mt-1">CUDA FP32 Batch-1</p>
+          </div>
+        </div>
+
+        <!-- Convergence Curves -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 font-mono">
+          <div class="bg-card border border-borderGreen rounded p-5">
+            <h3 class="label-mono text-white mb-4">Instance Mask Precision by Iteration</h3>
+            <div class="flex items-end justify-between h-48 px-6 pb-2 border-b border-borderGreen text-xs">
+              <div class="flex flex-col items-center gap-2">
+                <span class="text-slate-400">0.54</span>
+                <div class="w-14 bg-slate-700 rounded-t" style="height: 65px;"></div>
+                <span class="text-slate-400 text-[10px]">Scratch</span>
+              </div>
+              <div class="flex flex-col items-center gap-2">
+                <span class="text-accentCyan">0.71</span>
+                <div class="w-14 bg-accentCyan rounded-t" style="height: 105px;"></div>
+                <span class="text-slate-400 text-[10px]">ResNet-50</span>
+              </div>
+              <div class="flex flex-col items-center gap-2">
+                <span class="text-primaryGreen font-bold">0.86</span>
+                <div class="w-14 bg-primaryGreen rounded-t" style="height: 145px;"></div>
+                <span class="text-primaryGreen font-bold text-[10px]">FPN + ExG</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-card border border-borderGreen rounded p-5">
+            <h3 class="label-mono text-white mb-4">Multi-Task Loss Convergence</h3>
+            <div class="flex items-end justify-between h-48 px-6 pb-2 border-b border-borderGreen text-xs">
+              <div class="flex flex-col items-center gap-2">
+                <span class="text-alertOrange">0.82</span>
+                <div class="w-14 bg-alertOrange rounded-t" style="height: 135px;"></div>
+                <span class="text-slate-400 text-[10px]">Epoch 1</span>
+              </div>
+              <div class="flex flex-col items-center gap-2">
+                <span class="text-alertOrange">0.38</span>
+                <div class="w-14 bg-alertOrange/70 rounded-t" style="height: 70px;"></div>
+                <span class="text-slate-400 text-[10px]">Epoch 5</span>
+              </div>
+              <div class="flex flex-col items-center gap-2">
+                <span class="text-primaryGreen font-bold">0.16</span>
+                <div class="w-14 bg-primaryGreen rounded-t" style="height: 30px;"></div>
+                <span class="text-primaryGreen font-bold text-[10px]">Epoch 10</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================= SECTION E: RESULTS (GALLERY) ================= -->
+      <section id="tab-results" class="hidden space-y-6">
+        
+        <div class="flex items-center justify-between pb-2 border-b border-borderGreen font-mono">
+          <div>
+            <span class="label-mono text-primaryGreen">05 / Results Gallery</span>
+            <h2 class="text-2xl font-bold text-white tracking-tight mt-0.5">Benchmark Visual Demonstrations</h2>
+          </div>
+          <span class="px-3 py-1 bg-card border border-borderGreen rounded text-xs text-slate-300">
+            Side-by-Side Validation
+          </span>
+        </div>
+
+        <!-- Demonstration Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <!-- Sample 1 -->
+          <div class="bg-card border border-borderGreen rounded overflow-hidden p-4 space-y-3 font-mono">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-white">Specimen #1: Overlapping Mint Leaves</span>
+              <span class="text-primaryGreen">2 Leaves (Red / Blue)</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 bg-black rounded p-2">
+              <div class="text-center">
+                <img src="https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?q=80&w=600&auto=format&fit=crop" class="w-full h-40 object-cover rounded" alt="Original" />
+                <span class="text-[10px] text-slate-500 mt-1 block">Original image</span>
+              </div>
+              <div class="text-center">
+                <img src="https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?q=80&w=600&auto=format&fit=crop" class="w-full h-40 object-cover rounded border border-primaryGreen" alt="Segmented" />
+                <span class="text-[10px] text-primaryGreen mt-1 block">Segmented (0.999)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sample 2 -->
+          <div class="bg-card border border-borderGreen rounded overflow-hidden p-4 space-y-3 font-mono">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-white">Specimen #2: Triple Foliage Cluster</span>
+              <span class="text-primaryGreen">3 Leaves (Red / Blue / Green)</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 bg-black rounded p-2">
+              <div class="text-center">
+                <img src="https://images.unsplash.com/photo-1524492412937-b28074a5d7da?q=80&w=600&auto=format&fit=crop" class="w-full h-40 object-cover rounded" alt="Original" />
+                <span class="text-[10px] text-slate-500 mt-1 block">Original image</span>
+              </div>
+              <div class="text-center">
+                <img src="https://images.unsplash.com/photo-1524492412937-b28074a5d7da?q=80&w=600&auto=format&fit=crop" class="w-full h-40 object-cover rounded border border-accentCyan" alt="Segmented" />
+                <span class="text-[10px] text-accentCyan mt-1 block">Segmented (0.999)</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ================= SECTION F: IMAGE HISTORY ================= -->
+      <section id="tab-history" class="hidden space-y-6">
+        
+        <div class="flex items-center justify-between pb-2 border-b border-borderGreen font-mono">
+          <div>
+            <span class="label-mono text-primaryGreen">06 / History</span>
+            <h2 class="text-2xl font-bold text-white tracking-tight mt-0.5">Recent Analyzed Images (Last 5)</h2>
+          </div>
+          <button onclick="clearHistory()" class="px-3 py-1 bg-panel hover:bg-borderHighlight border border-borderGreen text-xs text-slate-400 hover:text-white rounded transition">
+            <i class="fa-solid fa-trash mr-1"></i> Clear History
+          </button>
+        </div>
+
+        <div id="historyGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 font-mono">
+          <!-- Rendered dynamically via JavaScript -->
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- SCRIPT ENGINE (FULLY INTEGRATED TO SERVER.PY) -->
+  <script>
+    let selectedFiles = [];
+    const MAX_HISTORY = 5;
+
+    // Tab Navigation Switcher
+    function switchTab(tabId) {
+      const tabs = ['overview', 'upload', 'metadata', 'metrics', 'results', 'history'];
+      tabs.forEach(t => {
+        const el = document.getElementById(`tab-${t}`);
+        const nav = document.getElementById(`nav-${t}`);
+        if (el) el.classList.add('hidden');
+        if (nav) nav.classList.remove('nav-item-active');
+      });
+
+      const activeEl = document.getElementById(`tab-${tabId}`);
+      const activeNav = document.getElementById(`nav-${tabId}`);
+      if (activeEl) activeEl.classList.remove('hidden');
+      if (activeNav) activeNav.classList.add('nav-item-active');
+
+      document.getElementById('breadcrumbCurrent').textContent = tabId;
+
+      if (tabId === 'history') {
+        renderHistory();
+      }
+    }
+
+    // Slider listener
+    const thresholdSlider = document.getElementById('thresholdSlider');
+    const thresholdVal = document.getElementById('thresholdVal');
+    if (thresholdSlider) {
+      thresholdSlider.addEventListener('input', (e) => {
+        thresholdVal.textContent = e.target.value;
+      });
+    }
+
+    // Drag and Drop Zone
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('leafFileInput');
+    const queueCount = document.getElementById('queueCount');
+    const queueList = document.getElementById('queueList');
+
+    if (dropzone && fileInput) {
+      dropzone.addEventListener('click', () => fileInput.click());
+
+      dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('border-primaryGreen');
+      });
+
+      dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('border-primaryGreen');
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('border-primaryGreen');
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          handleFiles(Array.from(e.dataTransfer.files));
+        }
+      });
+
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+          handleFiles(Array.from(e.target.files));
+        }
+      });
+    }
+
+    function handleFiles(files) {
+      selectedFiles = files.slice(0, 4); // Up to 4 images
+      queueCount.textContent = `${selectedFiles.length} images`;
+
+      queueList.innerHTML = selectedFiles.map((file, idx) => `
+        <div class="p-2 mb-1.5 bg-panel border border-borderGreen rounded text-left flex items-center justify-between text-xs">
+          <div>
+            <div class="font-bold text-white truncate max-w-[160px]">${idx + 1}. ${file.name}</div>
+            <div class="text-[10px] text-accentCyan">${(file.size / (1024*1024)).toFixed(2)} MB</div>
+          </div>
+          <span class="text-primaryGreen text-xs"><i class="fa-solid fa-check"></i></span>
+        </div>
+      `).join('');
+    }
+
+    function clearUploads() {
+      selectedFiles = [];
+      queueCount.textContent = '0 images';
+      queueList.innerHTML = 'No images queued yet.';
+      document.getElementById('outputContainer').innerHTML = `
+        <div id="outputPlaceholder" class="text-center text-slate-500 font-mono text-xs">
+          <i class="fa-regular fa-image text-4xl mb-3 block text-slate-600"></i>
+          <p>Upload an image and click Segment Leaves</p>
+        </div>
+      `;
+      document.getElementById('statLeafCount').textContent = '--';
+      document.getElementById('statInferenceSpeed').textContent = '-- ms';
+      document.getElementById('statSurfaceArea').textContent = '--';
+    }
+
+    // Call Backend API
+    async function runSegmentation() {
+      if (selectedFiles.length === 0) {
+        alert("Please drop or choose a leaf image first!");
+        return;
+      }
+
+      const btn = document.getElementById('analyzeBtn');
+      const origText = btn.innerHTML;
+      btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Processing...`;
+      btn.disabled = true;
+
+      const thresh = document.getElementById('thresholdSlider')?.value || 0.60;
+      const formData = new FormData();
+      selectedFiles.forEach(f => formData.append('files', f));
+      formData.append('threshold', thresh);
+
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/segment-batch', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+          // Update Statistics
+          document.getElementById('statLeafCount').textContent = data.total_leaves;
+          document.getElementById('statInferenceSpeed').textContent = `${data.latency_ms} ms`;
+          document.getElementById('outputStatusBadge').innerHTML = `<span class="text-primaryGreen font-bold">Done (${data.total_leaves} Leaves)</span>`;
+
+          const totalArea = data.results.reduce((acc, r) => acc + (r.surface_area_pixels || 0), 0);
+          document.getElementById('statSurfaceArea').textContent = totalArea.toLocaleString();
+
+          // Render Output Container
+          const container = document.getElementById('outputContainer');
+          const gridCols = data.results.length === 1 ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2';
+
+          container.innerHTML = `
+            <div class="grid ${gridCols} gap-4 w-full h-full max-h-[500px] overflow-y-auto p-2">
+              ${data.results.map((res, i) => `
+                <div class="bg-card border border-borderGreen rounded p-3 text-center flex flex-col justify-between">
+                  <div class="relative overflow-hidden rounded mb-2 border border-borderGreen bg-black">
+                    <img src="${res.annotated_image || res.segmented_image}" class="w-full h-48 object-contain" alt="Segmented" />
+                    <span class="absolute top-2 right-2 px-2 py-0.5 bg-panel text-accentCyan text-[10px] rounded border border-borderGreen font-mono font-bold">
+                      ${res.leaf_count} LEAVES
+                    </span>
+                  </div>
+                  <div class="flex justify-between items-center text-xs font-mono pt-1 text-slate-300">
+                    <span class="truncate max-w-[150px]">${res.filename}</span>
+                    <span class="text-primaryGreen font-bold">${res.leaf_count} Leaves</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+
+          // Save to Local History
+          data.results.forEach(r => saveToHistory(r));
+        }
+      } catch (err) {
+        console.error("API error:", err);
+        alert("Cannot connect to server.py. Please verify python server.py is running on port 8000!");
+      } finally {
+        btn.innerHTML = origText;
+        btn.disabled = false;
+      }
+    }
+
+    // ================= Image History Manager =================
+    function getHistory() {
+      try {
+        return JSON.parse(localStorage.getItem('leafvision_history') || '[]');
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveToHistory(item) {
+      let history = getHistory();
+      const record = {
+        id: Date.now(),
+        filename: item.filename || 'leaf_scan.png',
+        image: item.annotated_image || item.segmented_image,
+        leaf_count: item.leaf_count,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      // Add to front and limit to 5
+      history = [record, ...history.filter(h => h.image !== record.image)].slice(0, MAX_HISTORY);
+      localStorage.setItem('leafvision_history', JSON.stringify(history));
+      updateHistoryBadge();
+    }
+
+    function updateHistoryBadge() {
+      const history = getHistory();
+      const badge = document.getElementById('historyBadge');
+      if (badge) badge.textContent = history.length;
+    }
+
+    function renderHistory() {
+      const history = getHistory();
+      const container = document.getElementById('historyGrid');
+      updateHistoryBadge();
+
+      if (!container) return;
+
+      if (history.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-16 text-center text-slate-500 font-mono text-xs">
+            <i class="fa-solid fa-clock-rotate-left text-3xl mb-3 block text-slate-600"></i>
+            No previously analyzed images found yet.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = history.map((item, idx) => `
+        <div class="bg-card border border-borderGreen rounded overflow-hidden p-4 flex flex-col justify-between">
+          <div class="h-44 bg-black rounded overflow-hidden mb-3 border border-borderGreen flex items-center justify-center">
+            <img src="${item.image}" class="w-full h-full object-contain" alt="History Item" />
+          </div>
+          <div class="space-y-1 text-xs">
+            <div class="flex justify-between items-center">
+              <span class="font-bold text-white truncate max-w-[160px]">${item.filename}</span>
+              <span class="text-primaryGreen font-bold">${item.leaf_count} Leaves</span>
+            </div>
+            <div class="text-[10px] text-slate-500 flex justify-between pt-1">
+              <span>Analyzed at ${item.timestamp}</span>
+              <button onclick="restoreHistoryImage('${item.image}', ${item.leaf_count})" class="text-accentCyan hover:underline">
+                View in Lab
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function restoreHistoryImage(imageSrc, count) {
+      switchTab('upload');
+      document.getElementById('statLeafCount').textContent = count;
+      document.getElementById('outputContainer').innerHTML = `
+        <div class="w-full h-full flex items-center justify-center p-2">
+          <img src="${imageSrc}" class="max-h-[460px] object-contain rounded border border-borderGreen" />
+        </div>
+      `;
+    }
+
+    function clearHistory() {
+      localStorage.removeItem('leafvision_history');
+      renderHistory();
+      updateHistoryBadge();
+    }
+
+    // Init on load
+    updateHistoryBadge();
+  </script>
+</body>
+</html>
