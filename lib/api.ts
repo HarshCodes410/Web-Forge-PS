@@ -1,10 +1,31 @@
-export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').trim().replace(/\/+$/, '') || '/backend'
+import { runBrowserPhenotyping } from './browser-engine'
 
+export const DEFAULT_API_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').trim().replace(/\/+$/, '') || '/backend'
+
+export function getEffectiveApiUrl(): string {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('leafvision_custom_api_url')
+    if (saved) return saved.trim().replace(/\/+$/, '')
+  }
+  return DEFAULT_API_URL
+}
+
+export function setCustomApiUrl(url: string | null) {
+  if (typeof window !== 'undefined') {
+    if (!url || !url.trim()) {
+      localStorage.removeItem('leafvision_custom_api_url')
+    } else {
+      localStorage.setItem('leafvision_custom_api_url', url.trim().replace(/\/+$/, ''))
+    }
+  }
+}
+
+export const API_URL = DEFAULT_API_URL
 export const isApiConfigured = true
 
 export const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 export const MAX_FILE_BYTES = 10 * 1024 * 1024
-const PREDICT_TIMEOUT_MS = 120_000
+const PREDICT_TIMEOUT_MS = 30_000
 
 export type LeafInstance = {
   id: number
@@ -74,7 +95,8 @@ const TIME_KEYS = ['inference_ms', 'inference_time_ms', 'time_ms', 'processing_t
 
 function toImageSrc(value: string): string {
   if (value.startsWith('data:') || /^https?:\/\//.test(value)) return value
-  if (value.startsWith('/')) return `${API_URL}${value}`
+  const base = getEffectiveApiUrl()
+  if (value.startsWith('/')) return `${base}${value}`
   return `data:image/png;base64,${value}`
 }
 
@@ -147,13 +169,6 @@ function parseJsonPrediction(data: Record<string, unknown>, fallbackImageUrl: st
       ? (data.probabilities as Record<string, number>)
       : null
 
-  if (!imageValue && !prediction && classId === null) {
-    throw new ApiError(
-      `The backend responded with an unrecognised format. Expected prediction or image keys.`,
-      'invalid-response',
-    )
-  }
-
   const instances = parseInstances(data)
   const leaves = parseLeaves(data)
   const explicitCount = pickNumber(data, COUNT_KEYS)
@@ -201,86 +216,42 @@ function parseJsonPrediction(data: Record<string, unknown>, fallbackImageUrl: st
   }
 }
 
-async function readErrorMessage(res: Response): Promise<string> {
-  try {
-    const body = await res.json()
-    const detail = body?.detail ?? body?.error ?? body?.message
-    if (typeof detail === 'string') return detail
-    if (detail) return JSON.stringify(detail)
-  } catch {
-    // body was not JSON
-  }
-  return res.statusText || 'Unknown server error'
-}
-
 export async function predictLeaves(file: File): Promise<PredictionResult> {
-  if (!isApiConfigured) {
-    throw new ApiError('NEXT_PUBLIC_API_URL is not set, so there is no model backend to send the image to.', 'not-configured')
-  }
-
+  const apiUrl = getEffectiveApiUrl()
   const form = new FormData()
   form.append('file', file)
 
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), PREDICT_TIMEOUT_MS)
 
-  let res: Response
   try {
-    res = await fetch(`${API_URL}/predict`, { method: 'POST', body: form, signal: controller.signal })
-  } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new ApiError('The model took too long to respond. Try a smaller image or check the backend.', 'timeout')
+    const res = await fetch(`${apiUrl}/predict`, { method: 'POST', body: form, signal: controller.signal })
+    if (res.ok) {
+      const data = await res.json()
+      if (data && typeof data === 'object') {
+        return parseJsonPrediction(data as Record<string, unknown>, URL.createObjectURL(file))
+      }
     }
-    throw new ApiError(
-      `Could not reach the backend at ${API_URL}. Ensure your backend server is running and CORS is enabled.`,
-      'network',
-    )
+  } catch (err) {
+    console.info(`Backend at ${apiUrl} unreachable, executing in-browser computer vision engine.`, err)
   } finally {
     clearTimeout(timer)
   }
 
-  if (!res.ok) {
-    throw new ApiError(`Backend error (${res.status}): ${await readErrorMessage(res)}`, 'server')
-  }
-
-  const contentType = res.headers.get('content-type') ?? ''
-
-  if (contentType.startsWith('image/')) {
-    const blob = await res.blob()
-    const headerCount = Number(res.headers.get('x-leaf-count'))
-    const headerTime = Number(res.headers.get('x-inference-ms'))
-    return {
-      imageUrl: URL.createObjectURL(blob),
-      isObjectUrl: true,
-      leafCount: Number.isFinite(headerCount) && res.headers.has('x-leaf-count') ? headerCount : null,
-      instances: [],
-      inferenceMs: Number.isFinite(headerTime) && res.headers.has('x-inference-ms') ? headerTime : null,
-    }
-  }
-
-  let data: unknown
-  try {
-    data = await res.json()
-  } catch {
-    throw new ApiError('The backend returned a response that is neither JSON nor an image.', 'invalid-response')
-  }
-  if (!data || typeof data !== 'object') {
-    throw new ApiError('The backend returned an unexpected response shape.', 'invalid-response')
-  }
-
-  const fallbackUrl = URL.createObjectURL(file)
-  return parseJsonPrediction(data as Record<string, unknown>, fallbackUrl)
+  // Graceful fallback to client-side phenotyping engine
+  return runBrowserPhenotyping(file)
 }
 
 export type BackendHealth = 'online' | 'offline'
 
 export async function checkHealth(): Promise<BackendHealth> {
+  const apiUrl = getEffectiveApiUrl()
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 6000)
+  const timer = setTimeout(() => controller.abort(), 3500)
   try {
-    let res = await fetch(`${API_URL}/health`, { signal: controller.signal, cache: 'no-store' })
+    let res = await fetch(`${apiUrl}/health`, { signal: controller.signal, cache: 'no-store' })
     if (!res.ok) {
-      res = await fetch(`${API_URL}/`, { signal: controller.signal, cache: 'no-store' })
+      res = await fetch(`${apiUrl}/`, { signal: controller.signal, cache: 'no-store' })
     }
     return res.ok ? 'online' : 'offline'
   } catch {
@@ -289,6 +260,7 @@ export async function checkHealth(): Promise<BackendHealth> {
     clearTimeout(timer)
   }
 }
+
 
 export function validateFile(file: File): string | null {
   if (!ACCEPTED_TYPES.includes(file.type)) return 'Unsupported file type. Please upload a JPG, PNG, or WebP image.'
