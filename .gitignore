@@ -21,6 +21,9 @@ backend/.venv/
 backend/venv/
 *.pyc
 *.pth
+*.pptx
+ppt contents/
+AGENTS.md
 .env
 .worktrees/
 backend/cloudflared

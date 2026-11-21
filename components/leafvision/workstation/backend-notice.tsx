@@ -85,8 +85,8 @@ export function BackendNotice({
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <a
-            href="/downloads/leafvision-backend.zip"
-            download="leafvision-backend.zip"
+            href="/downloads/leafvision-backend-lite.zip"
+            download="leafvision-backend-lite.zip"
             className="inline-flex items-center gap-1.5 rounded-md border border-primary/60 bg-primary/15 px-3 py-1.5 font-mono text-xs font-semibold text-primary hover:bg-primary/25 transition-colors shadow-sm"
           >
             <Download className="size-3.5" aria-hidden="true" />
