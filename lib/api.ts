@@ -80,6 +80,7 @@ export class ApiError extends Error {
 
 const IMAGE_KEYS = [
   'colored_overlay_image',
+  'annotated_image',
   'result_image',
   'segmented_image',
   'output_image',
@@ -175,7 +176,7 @@ function parseJsonPrediction(data: Record<string, unknown>, fallbackImageUrl: st
   const inferenceSeconds = pickNumber(data, ['inference_time', 'processing_time'])
   const inferenceMs = pickNumber(data, TIME_KEYS) ?? (inferenceSeconds !== null ? inferenceSeconds * 1000 : null)
 
-  const totalLeafAreaPixels = pickNumber(data, ['total_leaf_area_pixels', 'leaf_area', 'total_area'])
+  const totalLeafAreaPixels = pickNumber(data, ['total_leaf_area_pixels', 'surface_area_pixels', 'leaf_area', 'total_area'])
   const canopyCoveragePct = pickNumber(data, ['canopy_coverage_pct', 'canopy_pct', 'coverage_pct'])
 
   // Health and Damage Area
